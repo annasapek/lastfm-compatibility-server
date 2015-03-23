@@ -11,8 +11,7 @@ def index():
 @app.route('/api/compute', methods=['POST'])
 def api_request():
 	if request.method == 'POST':
-		return jsonify({'result': calculate.get_score(request.form['me'], request.form['friend'])})
-
+		return jsonify(calculate.get_score(request.form['me'], request.form['friend']))
 		
 if __name__ == '__main__':
    app.run(debug=True)
