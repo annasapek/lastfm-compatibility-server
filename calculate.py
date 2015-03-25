@@ -5,14 +5,14 @@ from config import LASTFM_API_KEY
 def get_score(me, friend):
 	period = '1month'
 	data = [api_call_artists(me, period), api_call_artists(friend, period)]
+	
+	# check for valid usernames
 	for result in data:
 		if 'error' in result:
 			return {'status': 1}
 	
-	result = {'user_1': me, 'user_2': friend}
-	#result = {'status'}
-	
-	#result['response'] = {'user_1': me, 'user_2': friend}
+	# JSON result
+	result = {'status': 0, 'result': {'user_1': me, 'user_2': friend}}
 	
 	# dictionaries from artist to rank
 	my_artists = get_artist_dictionary(data[0])
@@ -29,7 +29,7 @@ def get_score(me, friend):
 	
 	# common artists
 	common_artists = {}
-	result['topartists'] = []
+	result['result']['topartists'] = []
 	
 	# compute a cumulative score for each shared artist
 	for artist, rank in my_artists.iteritems():
@@ -42,13 +42,13 @@ def get_score(me, friend):
 			print rank, artist, friend_artists[artist], my_score, friend_score, my_score + friend_score
 	
 	# sort the common artists based on the cumulative score
-	result['topartists'] = sorted(common_artists.items(), key=lambda (k, v): common_artists[k], reverse=True)
-	result['score'] = (100 * score) / max
+	result['result']['topartists'] = sorted(common_artists.items(), key=lambda (k, v): common_artists[k], reverse=True)
+	result['result']['score'] = (100 * score) / max
 	
 	print 'Max score:', max
 	print 'Point score:', score
-	print 'Score:', result['score']
-	print result['topartists']
+	print 'Score:', result['result']['score']
+	print result['result']['topartists']
 	return result
 
 # Makes a last.fm api call for the given user, returning their top 50 artists for the past month
