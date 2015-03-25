@@ -5,7 +5,14 @@ from config import LASTFM_API_KEY
 def get_score(me, friend):
 	period = '1month'
 	data = [api_call_artists(me, period), api_call_artists(friend, period)]
+	for result in data:
+		if 'error' in result:
+			return {'status': 1}
+	
 	result = {'user_1': me, 'user_2': friend}
+	#result = {'status'}
+	
+	#result['response'] = {'user_1': me, 'user_2': friend}
 	
 	# dictionaries from artist to rank
 	my_artists = get_artist_dictionary(data[0])
