@@ -45,13 +45,14 @@ def get_score(me, friend):
 	
 	# compute a cumulative score for each shared artist
 	for artist, data in my_artists.iteritems():
+		
 		# check if the other user also listens to this artist
 		if artist in friend_artists.iterkeys():
 			my_score = min_length - int(data['rank'])
 			friend_score = min_length - int(friend_artists[artist]['rank'])
 			sum_score = my_score + friend_score
 			common_artists[sum_score] = {'name': artist, 'image': data['image']}
-			score += sum_score
+			#score += sum_score
 	
 	# cumulative score
 	score = sum(x for x in common_artists.iterkeys())
@@ -78,6 +79,6 @@ def get_artist_dictionary(data):
 	for artist in data['topartists']['artist']:
 		rank = artist['@attr']['rank']
 		name = artist['name']
-		image = artist['image'][1]['#text']
+		image = artist['image'][1]['#text']		# 1 for medium image size
 		result[name] = {'rank': rank, 'image': image}
 	return result
