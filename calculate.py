@@ -2,7 +2,13 @@ from requests import get
 import json, operator
 from config import LASTFM_API_KEY
 
+ARTIST_API_CALL = 'http://ws.audioscrobbler.com/2.0/?method=user.gettopartists&user=%s&api_key=%s&format=json&period=%s'
+
 def get_score(me, friend):
+	""" Returns a music compatibility score and a list of common artists in JSON for
+		the two given Last.fm usernames.
+	"""
+	
 	# JSON result
 	result = {'status' : 0}
 	
@@ -13,6 +19,12 @@ def get_score(me, friend):
 	return result
 
 def get_artist_score(me, friend, result):
+	""" Returns JSON containing an artist compatibility score and a list of top
+		common artists for the given two users. The JSON result will also contain
+		a status code indicating success of the response (0=success, 1=failure), 
+		and a list of error messages upon failure.
+	"""
+	
 	period = '1month'
 	data = {me: api_call_artists(me, period), friend: api_call_artists(friend, period)}
 	
@@ -30,7 +42,7 @@ def get_artist_score(me, friend, result):
 	
 	result['result'] = {'user_1': me, 'user_2': friend}
 	
-	# dictionaries from artist to rank
+	# dictionaries from artist to {rank, image}
 	my_artists = get_artist_dictionary(data[me])
 	friend_artists = get_artist_dictionary(data[friend])
 	
@@ -61,23 +73,24 @@ def get_artist_score(me, friend, result):
 	score = sum(x for x in common_artists.iterkeys())
 	
 	# sort the common artists based on the cumulative score
-	result['result']['topartists'] = [v for (k, v) in sorted(common_artists.items(), reverse=True)]
+	result['result']['topartists'] = [v for (k, v) \
+		in sorted(common_artists.items(), reverse=True)]
 	result['result']['score'] = (100 * score) / max
 	
 	return result
 
-# Makes a last.fm api call for the given user, returning their top 50 artists for the past month
 def api_call_artists(username, period):
-	# make the last.fm api request
-	r = get('http://ws.audioscrobbler.com/2.0/?method=user.gettopartists&user=%s&api_key=%s&format=json&period=%s' % (username, LASTFM_API_KEY, period))
-	
-	# parsed data
-	json_data = r.json()
-	
-	return json_data
+	""" Gets the user's top 50 artists for the given time period
+	"""
 
-# Returns a dictionary from artist to {rank, image} from the given JSON data
+	r = get(ARTIST_API_CALL % (username, LASTFM_API_KEY, period))
+	return r.json()
+
 def get_artist_dictionary(data):
+	""" Parses the given JSON data and returns a dictionary from artist
+		to {rank, image}
+	"""
+	
 	result = {}
 	for artist in data['topartists']['artist']:
 		rank = artist['@attr']['rank']
@@ -87,7 +100,8 @@ def get_artist_dictionary(data):
 	return result
 
 def check_json_response(data):
-	""" Returns a list of tokens from the given JSON data that returned an error code
+	""" Returns a list of tokens from the given JSON data that returned an 
+		error code
 	"""
 	
 	errors = []
