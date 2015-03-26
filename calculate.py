@@ -3,23 +3,26 @@ import json, operator
 from config import LASTFM_API_KEY
 
 def get_score(me, friend):
-	period = '1month'
-	data = {me: api_call_artists(me, period), friend: api_call_artists(friend, period)}
-	
 	# JSON result
 	result = {'status' : 0}
 	
+	# artist compatability
+	result = get_artist_score(me, friend, result)
+	
+	# final result
+	return result
+
+def get_artist_score(me, friend, result):
+	period = '1month'
+	data = {me: api_call_artists(me, period), friend: api_call_artists(friend, period)}
+	
 	# check for errors
-	for name, response in data.iteritems():
-		if 'error' in response:
-			result['status'] = 1
-			
-			# invalid usernames
-			if response['error'] == 6: 
-				if 'error_messages' in result:
-					result['error_messages'].append('%s is not a valid Last.fm username.' % name)
-				else:
-					result['error_messages'] = ['%s is not a valid Last.fm username.' % name]
+	errors = check_json_response(data)
+	if errors:
+		result['error_messages'] = []
+		result['status'] = 1
+		for name in errors:
+			result['error_messages'].append('%s is not a valid Last.fm username.' % name)
 	
 	# return if there were errors
 	if result['status'] != 0: 
@@ -82,3 +85,13 @@ def get_artist_dictionary(data):
 		image = artist['image'][1]['#text']		# 1 for medium image size
 		result[name] = {'rank': rank, 'image': image}
 	return result
+
+def check_json_response(data):
+	""" Returns a list of tokens from the given JSON data that returned an error code
+	"""
+	
+	errors = []
+	for item, response in data.iteritems():
+		if 'error' in response and response['error'] == 6:
+			errors.append(item)
+	return errors
