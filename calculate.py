@@ -33,13 +33,13 @@ def get_score(me, friend):
 	return result
 
 def get_artist_score(me, friend, period):
-	""" Returns JSON containing an artist compatibility score and a list of top
-		common artists for the given users. The JSON result will also contain
-		a status code indicating success of the response (0=success, 1=failure), 
+	""" Returns a dictionary containing an artist compatibility score and a list of
+		top common artists for the given users. The result will also contain a
+		status code indicating success of the response (0=success, 1=failure), 
 		and a list of error messages upon failure.
 	"""
 	
-	result = {'status' : 0, 'artists': {}}
+	result = {'status' : 0, 'user_1': me, 'user_2': friend, 'artists': {}}
 	data = {me: api_call_artists(me, period), friend: api_call_artists(friend, period)}
 	
 	# check for errors
@@ -53,9 +53,6 @@ def get_artist_score(me, friend, period):
 	# return if there were errors
 	if result['status'] != 0: 
 		return result
-	
-	result['user_1'] = me
-	result['user_2'] = friend
 	
 	# dictionaries from artist to {rank, image}
 	my_artists = get_artist_dictionary(data[me])
@@ -81,7 +78,7 @@ def get_artist_score(me, friend, period):
 			my_score = min_length - int(data['rank'])
 			friend_score = min_length - int(friend_artists[artist]['rank'])
 			sum_score = my_score + friend_score
-			common_artists[sum_score] = {'name': artist, 'image': data['image']}
+			common_artists[sum_score] = {'name': artist, 'image': data['image'], 'url': data['url']}
 			#score += sum_score
 	
 	# cumulative score
@@ -94,11 +91,13 @@ def get_artist_score(me, friend, period):
 	return result
 
 def get_album_score(me, friend, period):
-	""" Returns JSON containing an album compatibility score and a list of common
-		albums for the given users. 
+	""" Returns a dictionary containing an album compatibility score and a list of 
+		common albums for the given users. The result will also contain a
+		status code indicating success of the response (0=success, 1=failure), 
+		and a list of error messages upon failure.
 	"""
 	
-	result = {'status': 0, 'albums': {}}
+	result = {'status': 0, 'user_1': me, 'user_2': friend, 'albums': {}}
 	data = {me: api_call_albums(me, period), friend: api_call_albums(friend, period)}
 	
 	# check for errors
@@ -132,7 +131,7 @@ def get_album_score(me, friend, period):
 			my_score = min_length - int(info['rank'])
 			friend_score = min_length - int(friend_albums[album]['rank'])
 			common_albums[my_score + friend_score] = \
-				{'name': album[0], 'artist': album[1], 'image': info['image']}
+				{'name': album[0], 'artist': album[1], 'image': info['image'], 'url': info['url']}
 	
 	# cumulative album score
 	result['albums']['score'] = (sum(x for x in common_albums.iterkeys()) * 100) / max
@@ -167,7 +166,8 @@ def get_artist_dictionary(data):
 		rank = artist['@attr']['rank']
 		name = artist['name']
 		image = artist['image'][1]['#text']	# 1 for medium image size
-		result[name] = {'rank': rank, 'image': image}
+		url = artist['url']
+		result[name] = {'rank': rank, 'image': image, 'url': url}
 	return result
 
 def get_album_dictionary(data):
@@ -177,7 +177,8 @@ def get_album_dictionary(data):
 		name = album['name']
 		artist = album['artist']['name']
 		image = album['image'][1]['#text']	# 1 for medium image size
-		result[(name, artist)] = {'rank': rank, 'image': image}
+		url = album['url']
+		result[(name, artist)] = {'rank': rank, 'image': image, 'url': url}
 	return result
 
 def check_json_response(data):
