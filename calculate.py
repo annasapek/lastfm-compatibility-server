@@ -19,6 +19,7 @@ def get_score(me, friend):
 	artists = get_artist_score(me, friend, period)
 	if artists['status'] != 0:
 		result['status'] = artists['status']
+		result['error_messages'] = artists['error_messages']
 		return result
 	result['artists'] = artists['artists']
 	
@@ -26,6 +27,7 @@ def get_score(me, friend):
 	albums = get_album_score(me, friend, period)
 	if albums['status'] != 0:
 		result['status'] = albums['status']
+		result['error_messages'] = albums['error_messages']
 		return result
 	result['albums'] = albums['albums']
 	
@@ -49,11 +51,8 @@ def get_artist_score(me, friend, period):
 		result['status'] = 1
 		for name in errors:
 			result['error_messages'].append(ERROR_USER % name)
-	
-	# return if there were errors
-	if result['status'] != 0: 
 		return result
-	
+		
 	# dictionaries from artist to {rank, image}
 	my_artists = get_artist_dictionary(data[me])
 	friend_artists = get_artist_dictionary(data[friend])
@@ -107,8 +106,6 @@ def get_album_score(me, friend, period):
 		result['error_messages'] = []
 		for error in errors:
 			result['error_messages'].append(ERROR_USER % error)
-	
-	if result['status'] != 0: 
 		return result
 
 	result['user_1'] = me
