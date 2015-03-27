@@ -12,23 +12,34 @@ def get_score(me, friend):
 		the two given Last.fm usernames.
 	"""
 	
-	result = {'status' : 0}
+	result = {'status' : 0, 'user_1': me, 'user_2': friend}
 	period = '1month'
 	
 	# artist compatability
-	get_artist_score(me, friend, result, period)
-	get_album_score(me, friend, result, period)
+	artists = get_artist_score(me, friend, period)
+	if artists['status'] != 0:
+		result['status'] = artists['status']
+		return result
+	result['artists'] = artists['artists']
+	
+	# album compatibility
+	albums = get_album_score(me, friend, period)
+	if albums['status'] != 0:
+		result['status'] = albums['status']
+		return result
+	result['albums'] = albums['albums']
 	
 	# final result
 	return result
 
-def get_artist_score(me, friend, result, period):
+def get_artist_score(me, friend, period):
 	""" Returns JSON containing an artist compatibility score and a list of top
 		common artists for the given users. The JSON result will also contain
 		a status code indicating success of the response (0=success, 1=failure), 
 		and a list of error messages upon failure.
 	"""
 	
+	result = {'status' : 0, 'artists': {}}
 	data = {me: api_call_artists(me, period), friend: api_call_artists(friend, period)}
 	
 	# check for errors
@@ -43,7 +54,8 @@ def get_artist_score(me, friend, result, period):
 	if result['status'] != 0: 
 		return result
 	
-	result['result'] = {'user_1': me, 'user_2': friend}
+	result['user_1'] = me
+	result['user_2'] = friend
 	
 	# dictionaries from artist to {rank, image}
 	my_artists = get_artist_dictionary(data[me])
@@ -59,7 +71,7 @@ def get_artist_score(me, friend, result, period):
 	common_artists = {}
 	
 	# topartists, a list of dictionaries, [{name, image}]
-	result['result']['topartists'] = []
+	result['artists']['top'] = []
 	
 	# compute a cumulative score for each shared artist
 	for artist, data in my_artists.iteritems():
@@ -73,19 +85,20 @@ def get_artist_score(me, friend, result, period):
 			#score += sum_score
 	
 	# cumulative score
-	result['result']['artistscore'] = (100 * sum(x for x in common_artists.iterkeys())) / max
+	result['artists']['score'] = (100 * sum(x for x in common_artists.iterkeys())) / max
 	
 	# sort the common artists based on the cumulative score
-	result['result']['topartists'] = [v for (k, v) \
+	result['artists']['top'] = [v for (k, v) \
 		in sorted(common_artists.items(), reverse=True)][0:10]
 	
 	return result
 
-def get_album_score(me, friend, result, period):
+def get_album_score(me, friend, period):
 	""" Returns JSON containing an album compatibility score and a list of common
 		albums for the given users. 
 	"""
 	
+	result = {'status': 0, 'albums': {}}
 	data = {me: api_call_albums(me, period), friend: api_call_albums(friend, period)}
 	
 	# check for errors
@@ -96,8 +109,11 @@ def get_album_score(me, friend, result, period):
 		for error in errors:
 			result['error_messages'].append(ERROR_USER % error)
 	
-	if result['status'] != 0:
+	if result['status'] != 0: 
 		return result
+
+	result['user_1'] = me
+	result['user_2'] = friend
 	
 	my_albums = get_album_dictionary(data[me])
 	friend_albums = get_album_dictionary(data[friend])
@@ -109,7 +125,7 @@ def get_album_score(me, friend, result, period):
 	common_albums = {}
 	
 	# list of top albums, [{name, artist, image}]
-	result['result']['topalbums'] = []
+	result['albums']['top'] = []
 	
 	for album, info in my_albums.iteritems():
 		if album in friend_albums.iterkeys():
@@ -119,11 +135,13 @@ def get_album_score(me, friend, result, period):
 				{'name': album[0], 'artist': album[1], 'image': info['image']}
 	
 	# cumulative album score
-	result['result']['albumscore'] = (sum(x for x in common_albums.iterkeys()) * 100) / max
+	result['albums']['score'] = (sum(x for x in common_albums.iterkeys()) * 100) / max
 	
 	# sort the common albums based on their score
-	result['result']['topalbums'] = [v for (k, v) \
+	result['albums']['top'] = [v for (k, v) \
 		in sorted(common_albums.items(), reverse=True)][0:10]
+	
+	return result
 
 def api_call_artists(username, period):
 	""" Gets the user's top 50 artists for the given time period
