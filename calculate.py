@@ -5,30 +5,30 @@ from config import LASTFM_API_KEY
 URL = 'http://ws.audioscrobbler.com/2.0/'
 ARTIST_API_CALL = URL + '?method=user.gettopartists&user=%s&api_key=%s&format=json&period=%s'
 ALBUM_API_CALL = URL + '?method=user.gettopalbums&user=%s&api_key=%s&format=json&period=%s'
+ERROR_USER = '%s is not a valid Last.fm username.'
 
 def get_score(me, friend):
 	""" Returns a music compatibility score and a list of common artists in JSON for
 		the two given Last.fm usernames.
 	"""
 	
-	# JSON result
 	result = {'status' : 0}
+	period = '1month'
 	
 	# artist compatability
-	result = get_artist_score(me, friend, result)
-	get_album_score(me, friend, result)
+	get_artist_score(me, friend, result, period)
+	get_album_score(me, friend, result, period)
 	
 	# final result
 	return result
 
-def get_artist_score(me, friend, result):
+def get_artist_score(me, friend, result, period):
 	""" Returns JSON containing an artist compatibility score and a list of top
 		common artists for the given users. The JSON result will also contain
 		a status code indicating success of the response (0=success, 1=failure), 
 		and a list of error messages upon failure.
 	"""
 	
-	period = '1month'
 	data = {me: api_call_artists(me, period), friend: api_call_artists(friend, period)}
 	
 	# check for errors
@@ -37,7 +37,7 @@ def get_artist_score(me, friend, result):
 		result['error_messages'] = []
 		result['status'] = 1
 		for name in errors:
-			result['error_messages'].append('%s is not a valid Last.fm username.' % name)
+			result['error_messages'].append(ERROR_USER % name)
 	
 	# return if there were errors
 	if result['status'] != 0: 
@@ -73,21 +73,31 @@ def get_artist_score(me, friend, result):
 			#score += sum_score
 	
 	# cumulative score
-	result['result']['aristscore'] = (100 * sum(x for x in common_artists.iterkeys())) / max
+	result['result']['artistscore'] = (100 * sum(x for x in common_artists.iterkeys())) / max
 	
 	# sort the common artists based on the cumulative score
 	result['result']['topartists'] = [v for (k, v) \
-		in sorted(common_artists.items(), reverse=True)]
+		in sorted(common_artists.items(), reverse=True)][0:10]
 	
 	return result
 
-def get_album_score(me, friend, result):
+def get_album_score(me, friend, result, period):
 	""" Returns JSON containing an album compatibility score and a list of common
 		albums for the given users. 
 	"""
 	
-	period = '1month'
 	data = {me: api_call_albums(me, period), friend: api_call_albums(friend, period)}
+	
+	# check for errors
+	errors	 = check_json_response(data)
+	if errors:
+		result['status'] = 1
+		result['error_messages'] = []
+		for error in errors:
+			result['error_messages'].append(ERROR_USER % error)
+	
+	if result['status'] != 0:
+		return result
 	
 	my_albums = get_album_dictionary(data[me])
 	friend_albums = get_album_dictionary(data[friend])
@@ -113,9 +123,7 @@ def get_album_score(me, friend, result):
 	
 	# sort the common albums based on their score
 	result['result']['topalbums'] = [v for (k, v) \
-		in sorted(common_albums.items(), reverse=True)]
-	
-	return result
+		in sorted(common_albums.items(), reverse=True)][0:10]
 
 def api_call_artists(username, period):
 	""" Gets the user's top 50 artists for the given time period
