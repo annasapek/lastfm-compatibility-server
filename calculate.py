@@ -63,10 +63,10 @@ def get_artist_score(me, friend, period):
 	# (n + 1)(n) 
 	max = min_length * (min_length - 1)
 	
-	# common artists, a dictionary, {score: {name, image}}
+	# common artists, a dictionary, {score: {name, image, url}}
 	common_artists = {}
 	
-	# topartists, a list of dictionaries, [{name, image}]
+	# topartists, a list of dictionaries, [{name, image, url}]
 	result['artists']['top'] = []
 	
 	# compute a cumulative score for each shared artist
@@ -77,8 +77,10 @@ def get_artist_score(me, friend, period):
 			my_score = min_length - int(data['rank'])
 			friend_score = min_length - int(friend_artists[artist]['rank'])
 			sum_score = my_score + friend_score
-			common_artists[sum_score] = {'name': artist, 'image': data['image'], 'url': data['url']}
-			#score += sum_score
+			common_artists[sum_score] = \
+				{'name': artist, 
+				 'image': data['image'], 
+				 'url': data['url']}
 	
 	# cumulative score
 	result['artists']['score'] = (100 * sum(x for x in common_artists.iterkeys())) / max
@@ -117,10 +119,10 @@ def get_album_score(me, friend, period):
 	min_length = min(len(my_albums), len(friend_albums)) + 1
 	max = (min_length) * (min_length - 1)
 	
-	# dict of albums, {score: {name, artist, image}}
+	# dict of albums, {score: {name, artist: {name, url}, image, url}}
 	common_albums = {}
 	
-	# list of top albums, [{name, artist, image}]
+	# list of top albums, [{name, artist: {name, url}, image, url}]
 	result['albums']['top'] = []
 	
 	for album, info in my_albums.iteritems():
@@ -128,7 +130,13 @@ def get_album_score(me, friend, period):
 			my_score = min_length - int(info['rank'])
 			friend_score = min_length - int(friend_albums[album]['rank'])
 			common_albums[my_score + friend_score] = \
-				{'name': album[0], 'artist': album[1], 'image': info['image'], 'url': info['url']}
+				{'name': album[0], 
+				 'artist': {
+					'name': album[1],
+					'url': info['url'][0:info['url'].rindex('/')]
+				 }, 
+				 'image': info['image'], 
+				 'url': info['url']}
 	
 	# cumulative album score
 	result['albums']['score'] = (sum(x for x in common_albums.iterkeys()) * 100) / max
@@ -155,7 +163,7 @@ def api_call_albums(username, period):
 
 def get_artist_dictionary(data):
 	""" Parses the given JSON data and returns a dictionary from artist
-		to {rank, image}
+		to {rank, image, url}
 	"""
 	
 	result = {}
@@ -168,6 +176,9 @@ def get_artist_dictionary(data):
 	return result
 
 def get_album_dictionary(data):
+	""" Parses the given JSON data and returns a dictionary from (album, artist)
+		to {rank, image, url}
+	"""
 	result = {}
 	for album in data['topalbums']['album']:
 		rank = album['@attr']['rank']
