@@ -34,6 +34,10 @@ def get_score(me, friend):
 
 	# track compatibility
 	tracks = get_track_score(me, friend, '3month')
+	if tracks['status'] != 0:
+		result['status'] = tracks['status']
+		result['error_messages'] = artists['error_messages']
+		return result
 	result['tracks'] = tracks['tracks']
 	
 	# final result
@@ -153,6 +157,14 @@ def get_track_score(me, friend, period):
 
 	result = {'status': 0, 'user_1': me, 'user_2': friend, 'tracks': {}}
 	data = {me: api_call_tracks(me, period), friend: api_call_tracks(friend, period)}
+
+	errors = check_json_response(data)
+	if errors:
+		result['status'] = 1
+		result['error_messages'] = []
+		for error in errors:
+			result['error_messages'].append(ERROR_USER % error)
+		return result
 
 	my_tracks = get_track_dictionary(data[me])
 	friend_tracks = get_track_dictionary(data[friend])
