@@ -5,6 +5,7 @@ from config import LASTFM_API_KEY
 URL = 'http://ws.audioscrobbler.com/2.0/'
 ARTIST_API_CALL = URL + '?method=user.gettopartists&user=%s&api_key=%s&format=json&period=%s'
 ALBUM_API_CALL = URL + '?method=user.gettopalbums&user=%s&api_key=%s&format=json&period=%s'
+TRACK_API_CALL = URL + '?method=user.gettoptracks&user=%s&api_key=%s&format=json&period=%s&limit=100'
 ERROR_USER = '%s is not a valid Last.fm username.'
 
 def get_score(me, friend):
@@ -30,6 +31,10 @@ def get_score(me, friend):
 		result['error_messages'] = albums['error_messages']
 		return result
 	result['albums'] = albums['albums']
+
+	# track compatibility
+	tracks = get_track_score(me, friend, '3month')
+	result['tracks'] = tracks['tracks']
 	
 	# final result
 	return result
@@ -109,9 +114,6 @@ def get_album_score(me, friend, period):
 		for error in errors:
 			result['error_messages'].append(ERROR_USER % error)
 		return result
-
-	result['user_1'] = me
-	result['user_2'] = friend
 	
 	my_albums = get_album_dictionary(data[me])
 	friend_albums = get_album_dictionary(data[friend])
@@ -147,6 +149,43 @@ def get_album_score(me, friend, period):
 	
 	return result
 
+def get_track_score(me, friend, period):
+
+	result = {'status': 0, 'user_1': me, 'user_2': friend, 'tracks': {}}
+	data = {me: api_call_tracks(me, period), friend: api_call_tracks(friend, period)}
+
+	my_tracks = get_track_dictionary(data[me])
+	friend_tracks = get_track_dictionary(data[friend])
+
+	min_length = min(len(my_tracks), len(friend_tracks)) + 1
+	max = (min_length) * (min_length - 1)
+
+	common_tracks = {}
+
+	result['tracks']['top'] = []
+
+	for track, info in my_tracks.iteritems():
+		if track in friend_tracks.iterkeys():
+			my_score = min_length - int(info['rank'])
+			friend_score = min_length - int(friend_tracks[track]['rank'])
+			common_tracks[my_score + friend_score] = \
+				{'name': track[0],
+				 'artist': {
+				  	'name': track[1],
+				  	'url': info['artisturl']
+				 },
+				 'url': info['trackurl']}
+
+	# cumulative track score
+	result['tracks']['score'] = (sum(x for x in common_tracks.iterkeys()) * 100) / max
+
+	# sort the common tracks based on their score
+	result['tracks']['top'] = [v for (k,v) \
+		in sorted(common_tracks.items(), reverse=True)][0:10]
+
+	return result
+
+
 def api_call_artists(username, period):
 	""" Gets the user's top 50 artists for the given time period
 	"""
@@ -161,11 +200,18 @@ def api_call_albums(username, period):
 	r = get(ALBUM_API_CALL % (username, LASTFM_API_KEY, period))
 	return r.json()
 
+def api_call_tracks(username, period):
+	""" Gets the user's top 100 songs for the given time period
+	"""
+
+	r = get(TRACK_API_CALL % (username, LASTFM_API_KEY, period))
+	return r.json()
+
+
 def get_artist_dictionary(data):
 	""" Parses the given JSON data and returns a dictionary from artist
 		to {rank, image, url}
 	"""
-	
 	result = {}
 	for artist in data['topartists']['artist']:
 		rank = artist['@attr']['rank']
@@ -187,6 +233,20 @@ def get_album_dictionary(data):
 		image = album['image'][1]['#text']	# 1 for medium image size
 		url = album['url']
 		result[(name, artist)] = {'rank': rank, 'image': image, 'url': url}
+	return result
+
+def get_track_dictionary(data):
+	""" Parses the given JSON data and returns a dictionary from (track, artist)
+		to {rank, trackurl, artisturl}
+	"""
+	result = {}
+	for track in data['toptracks']['track']:
+		rank = track['@attr']['rank']
+		name = track['name']
+		trackurl = track['url']
+		artist = track['artist']['name']
+		artisturl = track['artist']['url']
+		result[(name, artist)] = {'rank': rank, 'trackurl': trackurl, 'artisturl': artisturl}
 	return result
 
 def check_json_response(data):
