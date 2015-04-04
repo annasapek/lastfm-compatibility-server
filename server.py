@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
-app = Flask(__name__)
 import calculate
+
+app = Flask(__name__)
 
 # serve front end 
 @app.route('/')
