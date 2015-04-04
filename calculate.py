@@ -1,6 +1,12 @@
 from requests import get
 import json, operator
-from config import LASTFM_API_KEY
+import os
+
+# use environment variables, if available
+if 'LASTFM_API_KEY' in os.environ:
+	LASTFM_API_KEY = os.environ['LASTFM_API_KEY']
+else:
+	from config import LASTFM_API_KEY
 
 URL = 'http://ws.audioscrobbler.com/2.0/'
 ARTIST_API_CALL = URL + '?method=user.gettopartists&user=%s&api_key=%s&format=json&period=%s'
