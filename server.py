@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 import calculate
 
-# server info 
+# serve front end 
 @app.route('/')
 def index():
     return app.send_static_file('app.html')
