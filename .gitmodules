@@ -1,3 +1,3 @@
 [submodule "static"]
 	path = static
-	url = git@github.com:csu/compat-client.git
+	url = git@github.com:csu/lastfm-compatibility-client.git
