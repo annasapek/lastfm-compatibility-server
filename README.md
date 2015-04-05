@@ -1,4 +1,7 @@
-# compat-server
-### back-end for Last.fm compatibility calculator
+# lastfm-compatibility-server
+Back-end for Last.fm compatibility calculator
 
-See [compat-client](https://github.com/csu/compat-client) for client-side code
+See [lastfm-compatibility-client](https://github.com/csu/lastfm-compatibility-client) for client-side code
+
+### Scores
+Computes artist, album, song and overall compatibility scores between two users for a given time period
