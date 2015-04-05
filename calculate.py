@@ -45,6 +45,11 @@ def get_score(me, friend):
 		result['error_messages'] = artists['error_messages']
 		return result
 	result['tracks'] = tracks['tracks']
+
+	# total compatability score
+	result['total_score'] = ((result['artists']['score'] + 
+		result['albums']['score'] + 
+		result['tracks']['score']) * 100) / 300
 	
 	# final result
 	return result
